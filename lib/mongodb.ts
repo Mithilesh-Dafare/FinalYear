@@ -19,7 +19,8 @@ export const connectDB = async () => {
 
     console.log("mongodb connected successfully");
   } catch (error) {
-    console.error("mongodb conncetion error:", error);
-    process.exit(1);
+    console.error("mongodb connection error:", error);
+    // Re-throw the error so callers can handle it; do not exit the process
+    throw error;
   }
 };

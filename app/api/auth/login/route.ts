@@ -48,10 +48,20 @@ export async function POST(req: Request) {
         // Generate JWT token
         const tokenData = { userId: user._id.toString(), email: user.email };
         console.log(`Creating token for user: ${JSON.stringify(tokenData)}`);
-        
+
+        // Ensure JWT secret is configured to avoid runtime 500s
+        const jwtSecret = process.env.JWT_SECRET;
+        if (!jwtSecret) {
+            console.error('JWT_SECRET is not configured');
+            return NextResponse.json({
+                success: false,
+                message: 'Server configuration error: JWT secret is missing',
+            }, { status: 500 });
+        }
+
         const token = jwt.sign(
             tokenData,
-            process.env.JWT_SECRET!,
+            jwtSecret,
             { expiresIn: '7d' }
         );
 

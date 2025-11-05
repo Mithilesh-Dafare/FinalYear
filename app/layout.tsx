@@ -67,6 +67,9 @@ export default function RootLayout({
           </div>
           <NavBarWrapper />
           {children}
+          {/* Botpress Webchat Scripts */}
+          <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js"></script>
+          <script src="https://files.bpcontent.cloud/2025/04/19/09/20250419094324-XVRD1UY2.js" defer></script>
         </AuthProvider>
       </body>
     </html>
