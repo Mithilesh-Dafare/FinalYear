@@ -10,35 +10,25 @@ import InterviewBtn from "@/components/interview/InterviewBtn";
 
 const Dashboard = () => {
   const router = useRouter();
-  const { isAuthenticated, userData } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, isLoading, userData } = useAuth();
 
   useEffect(() => {
-    console.log('[Dashboard] Auth state:', { isAuthenticated, userData });
+    console.log('[Dashboard] Auth state:', { isAuthenticated, isLoading, userData });
     
-    // Give some time for AuthContext to initialize after login
-    const timer = setTimeout(() => {
-      if (!isAuthenticated) {
-        console.log('[Dashboard] Not authenticated after timeout, redirecting to login');
-        router.push("/login");
-      } else {
-        console.log('[Dashboard] Authenticated, showing dashboard');
-        setIsLoading(false);
-      }
-    }, 1000); // Wait 1 second for AuthContext to update
-
-    // If already authenticated, show dashboard immediately
-    if (isAuthenticated) {
-      console.log('[Dashboard] Already authenticated, showing dashboard immediately');
-      clearTimeout(timer);
-      setIsLoading(false);
+    // Only redirect if auth check is complete and user is not authenticated
+    if (!isLoading && !isAuthenticated) {
+      console.log('[Dashboard] Not authenticated, redirecting to login');
+      router.push("/login");
     }
+  }, [isAuthenticated, isLoading, userData, router]);
 
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, userData, router]);
-
-  // loader
+  // Show loader while auth is still loading
   if (isLoading) {
+    return <Loader />;
+  }
+
+  // Show loader if not authenticated (will redirect soon)
+  if (!isAuthenticated) {
     return <Loader />;
   }
 

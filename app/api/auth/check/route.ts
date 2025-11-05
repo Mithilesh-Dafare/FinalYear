@@ -4,8 +4,14 @@ import { cookies } from 'next/headers';
 
 export async function GET(req: Request) {
     try {
-        // Get token from cookies
-        const token = (await cookies()).get('token')?.value;
+        // Get token from Authorization header first, then fallback to cookies
+        const authHeader = req.headers.get('authorization');
+        let token = authHeader?.replace('Bearer ', '');
+        
+        // Fallback to cookies if no Authorization header
+        if (!token) {
+            token = (await cookies()).get('token')?.value;
+        }
         
         if (!token) {
             return NextResponse.json({ authenticated: false }, { status: 401 });

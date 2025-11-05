@@ -10,21 +10,52 @@ import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
 
-  // Check if already logged in on page load
+  // Check if already logged in on page load and when auth state changes
   useEffect(() => {
-    console.log('[Login] Auth state changed:', { isAuthenticated });
-    if (isAuthenticated) {
+    console.log('[Login] Auth state changed:', { isAuthenticated, authLoading });
+    // Only redirect if auth check is complete and user is authenticated
+    if (!authLoading && isAuthenticated) {
       console.log('[Login] User is already authenticated, redirecting to dashboard');
-      router.push("/dashboard");
+      console.log('[Login] Current location:', window.location.href);
+      console.log('[Login] About to redirect...');
+      
+      // Try immediate redirect first
+      try {
+        window.location.replace('/dashboard');
+      } catch (error) {
+        console.error('[Login] Redirect failed, trying alternative:', error);
+        // Fallback to href
+        window.location.href = '/dashboard';
+      }
     }
-  }, []); // Only run on mount to avoid conflicts with login flow
+  }, [isAuthenticated, authLoading]); // Run when authentication state changes
+
+  // Show loader while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center w-full h-screen">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
+
+  // If authenticated but still on login page, show loading message
+  if (isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center w-full h-screen">
+        <div className="text-white text-center">
+          <p>You are logged in! Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,11 +85,8 @@ export default function LoginPage() {
       setLoginSuccess(true);
       console.log('[Login] Auth context login called, redirecting...');
       
-      // Since server-side cookies are now set, redirect with a small delay
-      setTimeout(() => {
-        console.log('[Login] Redirecting to dashboard');
-        window.location.href = '/dashboard';
-      }, 100); // Small delay to ensure cookies are processed
+      // ADD THIS LINE TO FIX THE STUCK SCREEN
+      router.push("/dashboard");
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
