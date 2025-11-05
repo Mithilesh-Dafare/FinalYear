@@ -102,12 +102,6 @@ export default function LoginPage() {
         </h1>
       </div>
 
-      {/* Debug info */}
-      <div className="mb-4 p-2 bg-gray-800 text-white text-xs rounded">
-        <div>Auth State: {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}</div>
-        <div>Login Success: {loginSuccess ? 'Yes' : 'No'}</div>
-        <div>Loading: {loading ? 'Yes' : 'No'}</div>
-      </div>
 
       {loginSuccess ? (
         <div className="px-4 py-3 mb-4 text-center text-green-700 bg-green-100 border border-green-400 rounded">
@@ -167,18 +161,6 @@ export default function LoginPage() {
             name={loading ? "Signing In..." : "Sign In"}
           />
           
-          {/* Debug button to test manual navigation */}
-          <button
-            type="button"
-            onClick={() => {
-              console.log('[Debug] Manual navigation to dashboard');
-              window.location.href = '/dashboard';
-            }}
-            className="bg-red-500 text-white px-4 py-2 rounded mt-2"
-          >
-            Debug: Go to Dashboard
-          </button>
-
           <OAuthBtn
             path="/signup"
             text="Sign Up"

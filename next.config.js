@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
   eslint: {
     // Warning: This allows production builds to successfully complete even if
@@ -16,6 +18,10 @@ const nextConfig = {
       oxideResolver: false
     }
   },
+  webpack: (config) => {
+    config.resolve.alias['@'] = path.resolve(__dirname);
+    return config;
+  },
 };
 
-module.exports = nextConfig; 
+module.exports = nextConfig;

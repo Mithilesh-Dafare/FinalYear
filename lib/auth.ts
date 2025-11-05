@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
 const SECRET_KEY = process.env.JWT_SECRET as string;
 
@@ -6,9 +6,15 @@ if (!SECRET_KEY) {
   throw new Error("Missing jwt secret key");
 }
 
-export async function verifyToken(token: string) {
+type TokenPayload = JwtPayload & { userId: string };
+
+export async function verifyToken(token: string): Promise<TokenPayload> {
   try {
-    return jwt.verify(token, SECRET_KEY);
+    const decoded = jwt.verify(token, SECRET_KEY);
+    if (typeof decoded === 'string' || !decoded || !('userId' in decoded)) {
+      throw new Error('Invalid token payload');
+    }
+    return decoded as TokenPayload;
   } catch (error) {
     throw new Error("Invalid or expired token");
   }

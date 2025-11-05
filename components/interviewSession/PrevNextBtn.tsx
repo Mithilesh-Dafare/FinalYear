@@ -1,9 +1,9 @@
 import React from "react";
 
 interface NextPrevBtn {
-  onClick: any;
-  disabled: any;
-  classes: any;
+  onClick: () => void;
+  disabled: boolean;
+  classes?: boolean; // Made optional with ?
   label: string;
 }
 
