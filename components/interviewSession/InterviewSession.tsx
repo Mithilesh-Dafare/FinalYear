@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from 'next/navigation';
 import Webcam from "react-webcam";
 import {
   ISpeechRecognition,
@@ -16,6 +17,7 @@ export default function InterviewSession({
   interview,
   onInterviewUpdate,
 }: InterviewSessionProps) {
+  const router = useRouter();
   // State management
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
@@ -28,6 +30,7 @@ export default function InterviewSession({
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
 
   // Refs
   const webcamRef = useRef<Webcam>(null);
@@ -233,41 +236,72 @@ export default function InterviewSession({
 
   // Handle interview completion
   const handleCompleteInterview = async () => {
+    // 1. Check for video blob
+    if (!videoBlob) {
+      alert("No video recorded. Please record your interview to complete it.");
+      return;
+    }
+
+    setLoadingMessage("Uploading your recording...");
+    setIsSubmitting(true);
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No authentication token found");
+      // 2. Upload the video recording
+      const formData = new FormData();
+      formData.append("video", videoBlob, `interview-${interview._id}.webm`);
+
+      const uploadRes = await fetch(
+        `/api/interview/${interview._id}/upload-recording`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!uploadRes.ok) {
+        throw new Error("Video upload failed. Please try again.");
       }
 
-      const saved = await saveCurrentAnswer();
-      if (!saved) {
-        throw new Error("Failed to save final answer");
-      }
+      setLoadingMessage("Finalizing analysis...");
 
-      const response = await fetch(`/api/interview/${interview._id}/complete`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      // 3. Finalize the interview (to trigger AI feedback)
+      const completeRes = await fetch(
+        `/api/interview/${interview._id}/complete`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!completeRes.ok) {
+        const errorData = await completeRes.json();
         if (errorData.unansweredCount) {
           throw new Error(
             `Please answer all questions before completing the interview. ${errorData.unansweredCount} questions remain unanswered`
           );
         }
-        throw new Error(errorData.message || "Failed to complete interview");
+        throw new Error(errorData.message || "Failed to finalize interview analysis.");
       }
 
-      const data = await response.json();
-      console.log("Interview completed successfully, redirecting to result page", data);
-      window.location.href = `/interview/${interview._id}/results`;
-    } catch (error) {
-      console.error("Error completing interview:", error);
-      setError(error instanceof Error ? error.message : "Failed to complete interview");
+      // 4. Redirect to results page on success
+      router.push(`/interview/${interview._id}/results`);
+      
+    } catch (error: any) {
+      console.error("Failed to complete interview:", error);
+      setError(error.message || "An error occurred during completion.");
+      setIsSubmitting(false);
     }
   };
 
