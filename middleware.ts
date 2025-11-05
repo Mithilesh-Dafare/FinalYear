@@ -22,8 +22,9 @@ export function middleware(req: NextRequest) {
 
   const token = req.cookies.get("token")?.value;
   
-  // Debug token presence
+  // Debug token presence and cookies
   debug(`Token: ${token ? 'Present' : 'Not present'}`, req);
+  debug(`All cookies: ${req.cookies.toString()}`, req);
 
   // Public routes that don't require authentication
   const publicRoutes = ['/', '/login', '/signup', '/api/auth/login', '/api/auth/signup', '/api/auth/check'];
@@ -76,7 +77,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Temporarily disable middleware for debugging
-  matcher: [],
-  // Original: ["/((?!_next/static|_next/image|favicon.ico|images).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|images).*)"],
 };

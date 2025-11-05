@@ -21,12 +21,12 @@ interface Recording {
 }
 
 export default function RecordingsPage() {
+  const router = useRouter();
+  const { isAuthenticated, getToken } = useAuth();
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
-  const { isAuthenticated } = useAuth();
-  const router = useRouter();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -36,7 +36,7 @@ export default function RecordingsPage() {
 
     const fetchRecordings = async () => {
       try {
-        const token = localStorage.getItem("auth_token");
+        const token = await getToken();
         if (!token) {
           throw new Error("Authentication required");
         }
@@ -62,7 +62,7 @@ export default function RecordingsPage() {
     };
 
     fetchRecordings();
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, getToken]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {

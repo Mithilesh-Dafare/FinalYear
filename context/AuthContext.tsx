@@ -41,19 +41,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('[AuthContext] User data found:', storedUserData ? 'Yes' : 'No');
 
     if (token && storedUserData) {
-      console.log('[AuthContext] Setting authenticated state to true');
-      setIsAuthenticated(true);
+      console.log('[AuthContext] Both token and user data found, setting auth state...');
       try {
-        setUserData(JSON.parse(decodeURIComponent(storedUserData)));
+        const userData = JSON.parse(decodeURIComponent(storedUserData));
         console.log('[AuthContext] User data parsed successfully');
+        setIsAuthenticated(true);
+        setUserData(userData);
+        
+        // Optional: Validate token with server in background (non-blocking)
+        fetch('/api/auth/check', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(response => {
+          if (!response.ok) {
+            console.log('[AuthContext] Background token validation failed, clearing auth state');
+            document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            document.cookie = "user_data=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            setIsAuthenticated(false);
+            setUserData(null);
+          } else {
+            console.log('[AuthContext] Background token validation successful');
+          }
+        })
+        .catch(error => {
+          console.error('[AuthContext] Background token validation error:', error);
+          // Don't clear auth state on network errors during background validation
+        });
       } catch (error) {
         console.error("[AuthContext] Error parsing user data:", error);
         // Clear invalid cookies
         document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         document.cookie = "user_data=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        setIsAuthenticated(false);
+        setUserData(null);
       }
     } else {
       console.log('[AuthContext] No valid auth state found');
+      // Clear any orphaned cookies to prevent inconsistent state
+      if (token && !storedUserData) {
+        console.log('[AuthContext] Clearing orphaned token cookie');
+        document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      }
+      if (!token && storedUserData) {
+        console.log('[AuthContext] Clearing orphaned user_data cookie');
+        document.cookie = "user_data=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      }
+      setIsAuthenticated(false);
+      setUserData(null);
     }
   }, []);
 
@@ -62,6 +96,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .split('; ')
       .find(row => row.startsWith('token='))
       ?.split('=')[1] || null;
+    
+    // If no token found, ensure user is logged out
+    if (!token && isAuthenticated) {
+      console.log('[AuthContext] Token missing but user appears authenticated, logging out');
+      logout();
+      return null;
+    }
+    
     return token;
   };
 
@@ -76,13 +118,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set cookies with proper expiration (7 days to match JWT)
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
     
-    // Set token cookie (no Secure flag for localhost)
-    const tokenCookie = `token=${token}; expires=${expires}; path=/; SameSite=Strict`;
+    // Set token cookie (no Secure flag for localhost, relaxed SameSite)
+    const tokenCookie = `token=${token}; expires=${expires}; path=/; SameSite=Lax`;
     document.cookie = tokenCookie;
     console.log('[AuthContext] Token cookie set:', tokenCookie.substring(0, 50) + '...');
     
-    // Set user data cookie (no Secure flag for localhost)
-    const userDataCookie = `user_data=${encodeURIComponent(JSON.stringify(userData))}; expires=${expires}; path=/; SameSite=Strict`;
+    // Set user data cookie (no Secure flag for localhost, relaxed SameSite)
+    const userDataCookie = `user_data=${encodeURIComponent(JSON.stringify(userData))}; expires=${expires}; path=/; SameSite=Lax`;
     document.cookie = userDataCookie;
     console.log('[AuthContext] User data cookie set');
     
@@ -107,6 +149,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(true);
     setUserData(userData);
     console.log('[AuthContext] State updated - isAuthenticated: true');
+    
+    // Force a small delay to ensure state is propagated
+    setTimeout(() => {
+      console.log('[AuthContext] State propagation complete');
+    }, 50);
   };
 
   const logout = () => {

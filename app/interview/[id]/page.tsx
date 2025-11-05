@@ -1,130 +1,162 @@
 "use client";
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import Loader from "@/components/Loader";
 import ErrorInterview from "@/components/errors/ErrorInterview";
 import InterviewSession from "@/components/interviewSession/InterviewSession";
 import InterviewNav from "@/components/interview/InterviewNav";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { Interview } from "@/components/interviewSession/SessionTypes";
 
 interface InterviewPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
-}
-
-// define interview interfcae
-
-interface Interview {
-  _id: string;
-  jobRole: string;
-  techStack: string[];
-  yearsOfExperience: number;
-  status: string;
-  questions: Array<{
-    text: string;
-    answer?: string;
-    analysis?: {
-      score: number;
-      technicalFeedback: string;
-      communicationFeedback: string;
-      improvementSuggestions: string[];
-    };
   }>;
-  overallScore?: number;
-  feedback?: {
-    overallFeedback: string;
-    strengths: string[];
-    areasForImprovement: string[];
-    nextSteps: string[];
-  };
-  createdAt: string;
-  completedAt?: string;
 }
 
-export default function InterviewPage({ params }: InterviewPageProps) {
-  // unwrap params using react.use()
-  const unwrappedParams = use(params as unknown as Promise<{ id: string }>);
-  const interviewId = unwrappedParams.id;
-
+function InterviewPageContent({ params }: { params: Promise<{ id: string }> }) {
+  const { isAuthenticated, getToken } = useAuth();
   const router = useRouter();
   const [interview, setInterview] = useState<Interview | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchInterview = async () => {
-      try {
-        // get token from local storage
-        const token = localStorage.getItem("auth_token");
+  // Unwrap params using React.use()
+  const unwrappedParams = use(params);
+  const interviewId = unwrappedParams.id;
 
-        if (!token) {
-          router.push("/login");
-          return;
-        }
+  const fetchInterview = async () => {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
 
-        const response = await fetch(`/api/interview/${interviewId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+    if (!interviewId) {
+      setError("No interview ID provided");
+      setIsLoading(false);
+      return;
+    }
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch interviews");
-        }
+    try {
+      setIsLoading(true);
+      const token = await getToken();
 
-        const data = await response.json();
-        // console.log(data);
-        setInterview(data.interview);
-
-        // if interview is completed, redirect to result page
-        if (data.interview.status === "completed") {
-          router.push(`/interview/${interviewId}/results`);
-          return;
-        }
-      } catch (error) {
-        setError("Failed to load interviews. Please try again later");
-      } finally {
-        setLoading(false);
+      if (!token) {
+        throw new Error("Authentication required");
       }
-    };
 
+      const response = await fetch(`/api/interview/${interviewId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch interview");
+      }
+
+      const data = await response.json();
+      setInterview(data.interview);
+    } catch (err) {
+      console.error("Error fetching interview:", err);
+      setError(err instanceof Error ? err.message : "Failed to load interview");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchInterview();
-  }, [interviewId, router]);
+  }, [interviewId, isAuthenticated, getToken]);
 
-  // function to update the interview data when an answer is submitted
   const handleInterviewUpdate = (updatedInterview: Interview) => {
     setInterview(updatedInterview);
 
-    // if the interview is now completed, redirect to result page
     if (updatedInterview.status === "completed") {
-      // use direct window location change for more reliable navigation
       window.location.href = `/interview/${interviewId}/results`;
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <Loader />;
   }
 
   if (error) {
-    return <ErrorInterview bg="red" errors={error} />;
+    return (
+      <ErrorBoundary 
+        fallback={
+          <ErrorInterview 
+            errors={error} 
+            bg="red" 
+          />
+        }
+      >
+        <ErrorInterview 
+          errors={error} 
+          bg="red" 
+          onRetry={fetchInterview}
+        />
+      </ErrorBoundary>
+    );
   }
 
   if (!interview) {
-    return <ErrorInterview errors="Interview not found" bg="yellow" />;
+    return (
+      <ErrorBoundary 
+        fallback={
+          <ErrorInterview 
+            errors="Failed to load interview" 
+            bg="yellow" 
+          />
+        }
+      >
+        <ErrorInterview 
+          errors="Interview not found" 
+          bg="yellow" 
+          onRetry={() => router.push('/dashboard')}
+        />
+      </ErrorBoundary>
+    );
   }
 
   return (
-    <>
-      <InterviewNav interview={interview} />
-      <div className="py-6 text-white max-sm:px-4 px-22">
-        <div className="mb-6"></div>
-
-        <InterviewSession
-          interview={interview}
-          onInterviewUpdate={handleInterviewUpdate}
+    <ErrorBoundary 
+      fallback={
+        <ErrorInterview 
+          errors="Something went wrong with the interview session" 
+          bg="red"
+          onRetry={() => window.location.reload()}
         />
+      }
+    >
+      <div className="min-h-screen bg-gray-900">
+        <InterviewNav interview={interview} />
+        <main className="container mx-auto px-4 py-8">
+          <InterviewSession
+            interview={interview}
+            onInterviewUpdate={handleInterviewUpdate}
+          />
+        </main>
       </div>
-    </>
+    </ErrorBoundary>
+  );
+}
+
+export default function InterviewPage({ params }: InterviewPageProps) {
+  const router = useRouter();
+  const { isAuthenticated, getToken } = useAuth();
+  return (
+    <ErrorBoundary 
+      fallback={
+        <ErrorInterview 
+          errors="Something went wrong" 
+          bg="red"
+          onRetry={() => window.location.reload()}
+        />
+      }
+    >
+      <InterviewPageContent params={params} />
+    </ErrorBoundary>
   );
 }

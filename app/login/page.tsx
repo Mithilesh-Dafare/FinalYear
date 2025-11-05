@@ -17,14 +17,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
 
-  // Check if already logged in
+  // Check if already logged in on page load
   useEffect(() => {
     console.log('[Login] Auth state changed:', { isAuthenticated });
     if (isAuthenticated) {
-      console.log('[Login] User is authenticated, redirecting to dashboard');
+      console.log('[Login] User is already authenticated, redirecting to dashboard');
       router.push("/dashboard");
     }
-  }, [isAuthenticated, router]);
+  }, []); // Only run on mount to avoid conflicts with login flow
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,13 +52,13 @@ export default function LoginPage() {
       // Use the auth context to handle login
       login(data.token, data.user);
       setLoginSuccess(true);
-      console.log('[Login] Auth context login called, waiting for state update...');
+      console.log('[Login] Auth context login called, redirecting...');
       
-      // Add a fallback redirect in case useEffect doesn't trigger
+      // Since server-side cookies are now set, redirect with a small delay
       setTimeout(() => {
-        console.log('[Login] Fallback redirect to dashboard');
+        console.log('[Login] Redirecting to dashboard');
         window.location.href = '/dashboard';
-      }, 2000);
+      }, 100); // Small delay to ensure cookies are processed
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);

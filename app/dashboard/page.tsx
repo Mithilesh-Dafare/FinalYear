@@ -16,13 +16,25 @@ const Dashboard = () => {
   useEffect(() => {
     console.log('[Dashboard] Auth state:', { isAuthenticated, userData });
     
-    if (!isAuthenticated) {
-      console.log('[Dashboard] Not authenticated, redirecting to login');
-      router.push("/login");
-    } else {
-      console.log('[Dashboard] Authenticated, showing dashboard');
+    // Give some time for AuthContext to initialize after login
+    const timer = setTimeout(() => {
+      if (!isAuthenticated) {
+        console.log('[Dashboard] Not authenticated after timeout, redirecting to login');
+        router.push("/login");
+      } else {
+        console.log('[Dashboard] Authenticated, showing dashboard');
+        setIsLoading(false);
+      }
+    }, 1000); // Wait 1 second for AuthContext to update
+
+    // If already authenticated, show dashboard immediately
+    if (isAuthenticated) {
+      console.log('[Dashboard] Already authenticated, showing dashboard immediately');
+      clearTimeout(timer);
       setIsLoading(false);
     }
+
+    return () => clearTimeout(timer);
   }, [isAuthenticated, userData, router]);
 
   // loader

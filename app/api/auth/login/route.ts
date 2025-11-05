@@ -67,8 +67,8 @@ export async function POST(req: Request) {
 
         console.log(`Token created successfully: ${token.substring(0, 20)}...`);
 
-        // Return token directly in the response
-        return NextResponse.json({
+        // Create response with token in both body and cookies
+        const response = NextResponse.json({
             success: true,
             message: 'Login successful',
             token: token,
@@ -78,6 +78,30 @@ export async function POST(req: Request) {
                 email: user.email
             }
         });
+
+        // Set token cookie server-side for immediate availability to middleware
+        const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+        response.cookies.set('token', token, {
+            expires: expires,
+            path: '/',
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production'
+        });
+
+        // Set user data cookie server-side
+        response.cookies.set('user_data', encodeURIComponent(JSON.stringify({
+            id: user._id.toString(),
+            name: user.name,
+            email: user.email
+        })), {
+            expires: expires,
+            path: '/',
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production'
+        });
+
+        console.log('[Login API] Cookies set server-side');
+        return response;
         
     } catch (error) {
         console.error('Login error:', error);

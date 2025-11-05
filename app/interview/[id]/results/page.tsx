@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 // import Link from "next/link";
 import Loader from "@/components/Loader";
 import ErrorInterview from "@/components/errors/ErrorInterview";
@@ -12,17 +13,16 @@ import FeedbackTabData from "@/components/ResultsPage/FeedbackTabData";
 import InterviewNav from "@/components/interview/InterviewNav";
 
 interface ResultsPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function ResultsPage({ params }: ResultsPageProps) {
-  // unwrap params using react.use()
-  const unwrappedParams = use(params as unknown as Promise<{ id: string }>);
-  const interviewId = unwrappedParams.id;
-
   const router = useRouter();
+  const { getToken } = useAuth();
+  const interviewId = use(params).id;
+
   const [interview, setInterview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +34,8 @@ export default function ResultsPage({ params }: ResultsPageProps) {
       try {
         setLoading(true);
 
-        // get token from local storage
-        const token = localStorage.getItem("auth_token");
+        // get token from cookies via AuthContext
+        const token = await getToken();
 
         if (!token) {
           router.push("/login");
@@ -81,7 +81,7 @@ export default function ResultsPage({ params }: ResultsPageProps) {
     };
 
     fetchInterview();
-  }, [interviewId, router]);
+  }, [interviewId, router, getToken]);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-500";

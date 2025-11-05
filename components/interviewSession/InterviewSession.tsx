@@ -1,13 +1,14 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import Webcam from "react-webcam";
 import {
   ISpeechRecognition,
   ISpeechRecognitionEvent,
   ISpeechRecognitionErrorEvent,
   InterviewSessionProps,
-} from "./SessionTypes";
+} from "./SessionTypes.d";
 import PrevNextBtn from "./PrevNextBtn";
 import RecordingBtn from "./RecordingBtn";
 import InterviewRecordingSection from "@/components/interview/InterviewRecordingSection";
@@ -18,6 +19,7 @@ export default function InterviewSession({
   onInterviewUpdate,
 }: InterviewSessionProps) {
   const router = useRouter();
+  const { getToken } = useAuth();
   // State management
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
@@ -199,7 +201,7 @@ export default function InterviewSession({
     if (!userAnswer.trim()) return false;
 
     try {
-      const token = localStorage.getItem("token");
+      const token = await getToken();
       if (!token) {
         throw new Error("No authentication token found");
       }
@@ -245,7 +247,7 @@ export default function InterviewSession({
     setLoadingMessage("Uploading your recording...");
     setIsSubmitting(true);
 
-    const token = localStorage.getItem("token");
+    const token = await getToken();
     if (!token) {
       router.push("/login");
       return;
@@ -317,7 +319,7 @@ export default function InterviewSession({
       if (videoBlob && !videoUrl) {
         setIsUploadingVideo(true);
         try {
-          const token = localStorage.getItem("token");
+          const token = await getToken();
           if (!token) {
             throw new Error("No authentication token found");
           }

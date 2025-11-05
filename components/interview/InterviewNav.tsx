@@ -4,10 +4,20 @@ import { ArrowLeft, Clock, Lock, Timer } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
-const InterviewNav = ({ interview }: { interview: any }) => {
+import { Interview } from "@/components/interviewSession/SessionTypes";
+
+interface InterviewNavProps {
+  interview?: Interview;
+  interviewId?: string;
+}
+
+const InterviewNav = ({ interview, interviewId }: InterviewNavProps) => {
+  // If only interviewId is provided, we'll need to fetch the interview data
+  // For now, we'll just use a placeholder title if interview is not available
+  const title = interview?.jobRole || 'Interview';
   return (
     <>
-      <div className="sticky top-0 z-10 flex items-center justify-between p-4 text-white border-b shadow-lg md:py-6 md:px-10 border-slate-800/80 bg-black/30 backdrop-blur-md">
+      <div className="sticky top-0 z-10 flex items-center justify-between p-4 text-white border-b shadow-lg md:py-4 md:px-6 border-slate-800/80 bg-black/30 backdrop-blur-md">
         <div className="flex gap-4">
           <Image
             width={40}
@@ -18,7 +28,7 @@ const InterviewNav = ({ interview }: { interview: any }) => {
           />
           <div className="text-sm leading-2 max-sm:text-xs">
             <h1 className="text-3xl font-bold tracking-tighter max-sm:text-base">
-              {interview.jobRole} interview
+              {title} Interview
             </h1>
             <p className="font-light tracking-tight text-slate-400">
               Secure your future with the right answers
@@ -47,14 +57,18 @@ const InterviewNav = ({ interview }: { interview: any }) => {
             Tech Stack:
           </span>
           <div className="flex gap-2">
-            {interview.techStack.map((tech: string, index: number) => (
+            {interview?.techStack?.map((tech: string, index: number) => (
               <span
                 key={index}
                 className="bg-slate-800/70 px-2 py-1 max-sm:text-[8px] rounded-md text-xs border border-slate-700/50 hover:border-[#b87a9c]/30 transition-all cursor-default"
               >
                 {tech}
               </span>
-            ))}
+            )) || (
+              <span className="bg-slate-800/70 px-2 py-1 max-sm:text-[8px] rounded-md text-xs border border-slate-700/50 text-slate-400">
+                Loading...
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 px-3 py-1 text-sm border rounded-md max-sm:text-xs bg-slate-800/70 border-slate-700/50">
@@ -63,8 +77,8 @@ const InterviewNav = ({ interview }: { interview: any }) => {
           <p className="text-slate-300">
             Experience:{" "}
             <span className="font-medium text-white">
-              {interview.yearsOfExperience}{" "}
-              {interview.yearsOfExperience <= 1 ? "Year" : "Years"}
+              {interview?.yearsOfExperience || "N/A"}{" "}
+              {interview?.yearsOfExperience && interview.yearsOfExperience <= 1 ? "Year" : "Years"}
             </span>
           </p>
         </div>

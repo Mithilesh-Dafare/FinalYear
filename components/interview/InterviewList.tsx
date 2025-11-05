@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import Loader from "../Loader";
 import ContinueBtn from "./ContinueBtn";
 
@@ -16,6 +17,7 @@ interface Interview {
 
 export default function InterviewList() {
   const router = useRouter();
+  const { getToken } = useAuth();
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,11 +25,10 @@ export default function InterviewList() {
   useEffect(() => {
     const fetchInterviews = async () => {
       try {
-        // get token from local storage
-        const token = localStorage.getItem("auth_token");
+        const token = await getToken();
 
         if (!token) {
-          throw new Error("Authentication token not found");
+          throw new Error("Authentication token not found. Please log in again.");
         }
 
         const response = await fetch("/api/interview/user", {
@@ -41,18 +42,17 @@ export default function InterviewList() {
         }
 
         const data = await response.json();
-        // console.log(data);
         setInterviews(data.interviews || []);
       } catch (error) {
         console.error("error fetching interviews: ", error);
-        setError("Failed to load interviews, Please try again later!");
+        setError(error instanceof Error ? error.message : "Failed to load interviews. Please try again later!");
       } finally {
         setLoading(false);
       }
     };
 
     fetchInterviews();
-  }, []);
+  }, [getToken]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {

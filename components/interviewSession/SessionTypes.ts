@@ -1,33 +1,35 @@
 export interface Question {
-  _id: string;
   text: string;
   answer?: string;
   analysis?: {
-    score?: number;
-    feedback?: string;
-  };
-  recording?: {
-    url: string;
-    key: string;
-    mimeType: string;
-    size: number;
-    duration: number;
+    score: number;
+    technicalFeedback: string;
+    communicationFeedback: string;
+    improvementSuggestions: string[];
   };
 }
 
 export interface Interview {
   _id: string;
-  title: string;
-  description?: string;
+  jobRole: string;
+  techStack: string[];
+  yearsOfExperience: number;
+  status: string;
   questions: Question[];
-  status: 'draft' | 'in-progress' | 'completed' | 'evaluated';
+  overallScore?: number;
+  feedback?: {
+    overallFeedback: string;
+    strengths: string[];
+    areasForImprovement: string[];
+    nextSteps: string[];
+  };
   createdAt: string;
-  updatedAt: string;
+  completedAt?: string;
 }
 
 export interface InterviewSessionProps {
   interview: Interview;
-  onInterviewUpdate: (updatedInterview: Interview) => void;
+  onInterviewUpdate?: (updatedInterview: Interview) => void;
 }
 
 export interface ISpeechRecognition extends EventTarget {

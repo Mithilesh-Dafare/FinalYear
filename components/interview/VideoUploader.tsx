@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { Upload, X, CheckCircle, Video, AlertCircle } from "lucide-react";
 
 interface VideoUploaderProps {
@@ -15,6 +16,7 @@ const VideoUploader = ({
   onError,
   initialVideoUrl = null,
 }: VideoUploaderProps) => {
+  const { getToken } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(!!initialVideoUrl);
@@ -32,7 +34,7 @@ const VideoUploader = ({
       const formData = new FormData();
       formData.append("video", file);
 
-      const token = localStorage.getItem("token");
+      const token = await getToken();
       if (!token) {
         throw new Error("No authentication token found");
       }

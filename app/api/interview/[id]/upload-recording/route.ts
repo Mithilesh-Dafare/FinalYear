@@ -9,7 +9,7 @@ import { JwtPayload } from 'jsonwebtoken';
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1. Get and verify the authorization token
@@ -36,7 +36,7 @@ export async function POST(
     }
 
     // 2. Validate interview ID
-    const interviewId = params.id;
+    const interviewId = (await params).id;
     if (!Types.ObjectId.isValid(interviewId)) {
       return NextResponse.json(
         { error: 'Invalid interview ID' },

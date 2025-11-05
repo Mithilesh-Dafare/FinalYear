@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import Loader from "@/components/Loader";
 import ErrorInterview from "@/components/errors/ErrorInterview";
@@ -23,6 +24,7 @@ export default function AnalysisPage({ params }: AnalysisProps) {
   const interviewId = unwrappedParams.id;
 
   const router = useRouter();
+  const { getToken } = useAuth();
   const [interview, setInterview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,9 +33,9 @@ export default function AnalysisPage({ params }: AnalysisProps) {
   useEffect(() => {
     //fetch interview data
     const fetchInterview = async () => {
-      // get token from localstorage
+      // get token from cookies via AuthContext
       try {
-        const token = localStorage.getItem("auth_token");
+        const token = await getToken();
 
         if (!token) {
           router.push("/login");
@@ -74,7 +76,7 @@ export default function AnalysisPage({ params }: AnalysisProps) {
     };
 
     fetchInterview();
-  }, [interviewId, router]);
+  }, [interviewId, router, getToken]);
 
   // logic for marks data
   const getScoreColor = (score: number) => {

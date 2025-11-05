@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import FormFeature from "../small-components/FormFeature";
 import InterviwFormInputs from "../small-components/InterviwFormInputs";
 
@@ -15,6 +16,7 @@ const TECH_KEYWORDS = [
 ];
 
 const NewInterviewForm = ({ onClose, onStartInterview }: NewInterviewFormProps) => {
+  const { getToken } = useAuth();
   const [form, setForm] = useState({
     jobRole: "",
     techStack: "",
@@ -82,7 +84,7 @@ const NewInterviewForm = ({ onClose, onStartInterview }: NewInterviewFormProps) 
     setStatus(prev => ({ ...prev, isSubmitting: true }));
 
     try {
-      const token = localStorage.getItem("auth_token");
+      const token = await getToken();
       if (!token) throw new Error("Authentication token missing");
 
       const response = await fetch("/api/interview", {
